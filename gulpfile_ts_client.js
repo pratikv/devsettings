@@ -38,15 +38,34 @@ var config = {
 }
 
 gulp.task('compile-ts', function () {
+ var errors = 0;
     var tsResult = tsProject.src()//gulp.src()
-        .pipe(sourcemaps.init())
-        .pipe(tsc(tsProject));
-
+                       .pipe(sourcemaps.init())
+        .pipe(tsc(tsProject))
+        .on("error", function() {
+            errors++;
+        })
+        .on("finish", function() {
+            if (errors !== 0) {
+                console.error("Typescript error(s) found. Build Failed");
+                process.exit(1);
+            }
+        });
+    
     tsResult.dts.pipe(gulp.dest("./"));
     return tsResult.js
         .pipe(sourcemaps.write('.'))
-        .pipe(gulp.dest("."))
-        .pipe(connect.reload());
+        .pipe(gulp.dest("./"));
+						
+//    var tsResult = tsProject.src()//gulp.src()
+//        .pipe(sourcemaps.init())
+//        .pipe(tsc(tsProject));
+//
+//    tsResult.dts.pipe(gulp.dest("./"));
+//    return tsResult.js
+//        .pipe(sourcemaps.write('.'))
+//        .pipe(gulp.dest("."))
+//        .pipe(connect.reload());
 });
 
 
