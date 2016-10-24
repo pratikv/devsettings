@@ -1,0 +1,116 @@
+<html>
+    <head>
+        <title>WebGL</title>
+    </head>
+    <body>
+        <canvas id="gl-canvas" height="400" width="400"></canvas>
+        <script>
+            /**
+ * @param  {WebGLRenderingContext} gl
+ * @param  {Array<number>} arr
+ */
+function createArrayBuffer(gl, arr) {
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
+    return buffer;
+}
+function createElementArrayBuffer(gl, arr) {
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(arr), gl.STATIC_DRAW);
+    return buffer;
+}
+function createShader(gl, src, shaderType) {
+    let shader = gl.createShader(shaderType);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    let param = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    console.log(gl.getShaderInfoLog(shader));
+    return shader;
+}
+function createProgram(gl, vsrc, fsrc) {
+    // Get the vertex and fragment shaders
+    let vs = createShader(gl, vsrc, gl.VERTEX_SHADER);
+    let fs = createShader(gl, fsrc, gl.FRAGMENT_SHADER);
+    let prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    console.log(gl.getProgramInfoLog(prog));
+    return prog;
+}
+var gl;
+var vsrc = `
+attribute vec2 a_pos;
+
+void main(){
+    gl_Position = vec4(a_pos, 0.0, 1.0);
+}
+`;
+var fsrc = `
+#if GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+void main(){
+    vec2 st = gl_FragCoord.xy / u_resolution;
+    gl_FragColor = vec4(st.x,st.y,0.0,1.0);
+}
+`;
+
+/**
+ * @param  {WebGLRenderingContext} gl
+ */
+function run(gl, width, height){
+    gl.clearColor(0, 0, 0, 1);
+    var prog = createProgram(gl, vsrc, fsrc);
+    prog.attributes = {};
+    prog.uniforms = {};
+    prog.uniforms["u_resolution"] = gl.getUniformLocation(prog,"u_resolution");
+    prog.uniforms["u_time"] = gl.getUniformLocation(prog,"u_time");
+    prog.attributes["a_pos"] = gl.getAttribLocation(prog, "a_pos");
+    gl.enableVertexAttribArray(prog.attributes["a_pos"]);
+
+    var rectArray = [
+        -1, -1, 0, 0,
+        1, -1, 1, 0,
+        1, 1, 1, 1,
+        -1, 1, 0, 1
+    ];
+    var eleArray = [
+        0, 1, 2,
+        2, 3, 0
+    ];
+
+    var buffer = createArrayBuffer(gl, rectArray);
+    var eleBuffer = createElementArrayBuffer(gl, eleArray);
+    gl.viewport(0, 0, width, height);
+    gl.useProgram(prog);
+    gl.uniform2f(prog.uniforms.u_resolution, width, height);
+    function render(time) {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        //console.log(time);
+        gl.uniform1f(prog.uniforms.u_time, time / 1000);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.vertexAttribPointer(prog.attributes.a_pos, 2, gl.FLOAT, false, 16, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, eleBuffer);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+        gl.flush();
+        requestAnimationFrame(render);
+    }
+    render(0);
+}
+
+function main() {
+    let canvas = document.getElementById("gl-canvas");
+    gl = canvas.getContext("webgl");
+    run(gl, canvas.width, canvas.height);
+}
+main();
+
+        </script>
+    </body>
+</html>
