@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Hello world</title>
+  <script>
+     if ('WebAssembly' in window) {
+        fetch('2.wasm') // Fetch the binary
+            .then(response => response.arrayBuffer())
+	    .then(buffer => {console.log(WebAssembly.validate(buffer)); return Promise.resolve(buffer);})
+		.then(buffer => { 
+		  var imports = imports || {};
+		  imports.env = imports.env || {};
+		  imports.env.STACKTOP = imports.env.STACKTOP || 0;
+		  imports.env.memoryBase = imports.env.memoryBase || 0;
+		  imports.env.tableBase = imports.env.tableBase || 0;
+
+		  if (!imports.env.memory) {
+			imports.env.memory = new WebAssembly.Memory({
+			  initial: 256, maximum : 256
+			});
+		  }
+
+		  if (!imports.env.table) {
+			imports.env.table = new WebAssembly.Table({
+			  initial: 0,
+			  element: 'anyfunc',
+			  maximum : 0
+			});
+		  }
+		  return WebAssembly.instantiate(buffer, imports );
+		})
+	    .then( res => { console.log( res.instance.exports._foo()); })
+      } else {
+        output.value = "Your browser doesn't support Web Assembly. You may need " +
+        "to enable it in your browser's flags.";
+      }
+  </script>
+  </head>
+<body>
+  <input type="button" id="btn" value="Click me to execute hello world!" />
+</body>
+</html>
